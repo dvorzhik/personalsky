@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Личный небосвод хранит цели, отметки и настройки только на устройстве
+    и не использует облачное резервное копирование (см. android:allowBackup="false").
+    Файл оставлен как страховка: если Auto Backup когда-либо включат,
+    данные приложения всё равно не должны покидать устройство.
+    Подробности: https://developer.android.com/guide/topics/data/autobackup
+-->
+<full-backup-content>
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="file" path="datastore" />
+    <exclude domain="file" path="." />
+    <exclude domain="root" path="." />
+</full-backup-content>

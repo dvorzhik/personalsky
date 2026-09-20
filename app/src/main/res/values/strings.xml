@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">Личный небосвод</string>
+
+    <!-- Виджет -->
+    <string name="widget_description">Ближайшая звезда пути и день цели</string>
+    <string name="widget_day_label">ДЕНЬ</string>
+    <string name="widget_day_placeholder">—</string>
+    <string name="widget_day_empty">Создайте первое созвездие</string>
+    <string name="widget_symbol_empty">✧</string>
+    <string name="widget_symbol_bright">✦</string>
+    <string name="widget_symbol_standard">★</string>
+    <string name="widget_symbol_missed">·</string>
+    <string name="widget_status_idle">Зажгите сегодняшнюю звезду</string>
+    <string name="widget_status_bright">Сегодняшняя звезда сияет ярко</string>
+    <string name="widget_status_standard">Сегодняшняя звезда уже горит</string>
+    <string name="widget_status_missed">Туманность — часть пути</string>
+
+    <!-- Уведомления -->
+    <string name="notification_channel_name">Ежедневное напоминание</string>
+    <string name="notification_channel_description">Мягкое ежедневное приглашение вернуться к своей цели</string>
+    <string name="notification_daily_reminder">Зажгите сегодняшнюю звезду</string>
+    <string name="notification_test_reminder">Проверка пройдена. Ваш личный небосвод рядом.</string>
+</resources>

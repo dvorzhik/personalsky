@@ -1,0 +1,32 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Секреты: не должны попадать в репозиторий ни при каких обстоятельствах
+*.jks
+*.keystore
+keystore.properties
+key.properties
+*.pepk
+
+# Кэш и вывод сборки
+/.gradle
+/.kotlin
+/app/build
+/release
+/.idea
+*.apk
+*.aab
+
