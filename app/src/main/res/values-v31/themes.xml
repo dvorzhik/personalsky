@@ -1,10 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--
+        Android 12+ (API 31): та же тёмная тема плюс системный splash screen,
+        чтобы запуск начинался с чёрного фона без светлой вспышки.
+        windowBackground обязательно повторять здесь, иначе на этой ветке
+        ресурсов тема теряет чёрный фон и edge-to-edge даёт светлую полосу.
+    -->
     <style name="Theme.PersonalSky" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/amoled_black</item>
+        <item name="android:colorBackground">@color/amoled_black</item>
         <item name="android:windowSplashScreenBackground">#FF000000</item>
         <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
         <item name="android:windowSplashScreenIconBackgroundColor">#FF000000</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
     </style>
 </resources>
