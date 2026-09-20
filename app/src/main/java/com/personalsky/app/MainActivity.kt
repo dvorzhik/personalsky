@@ -24,18 +24,24 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -168,9 +174,24 @@ private fun PersonalSkyApp(
         }
     }
 
-    fun openAstronomyGuide(durationDays: Int, returnScreen: AppScreen) {
+    /**
+     * Вариант справки: сохранённый у цели имеет приоритет, иначе он считается
+     * по числу уже архивных целей той же длины. Значение закрепляется за целью
+     * при завершении, поэтому архив откроет тот же текст.
+     */
+    fun guideToneFor(durationDays: Int, savedToneIndex: Int?): Int {
+        val toneCount = AstronomyTone.entries.size
+        return savedToneIndex?.mod(toneCount)
+            ?: archivedGoals.count { it.durationDays == durationDays } % toneCount
+    }
+
+    /**
+     * Вариант справки: если он сохранён у цели (после завершения спринта) —
+     * используем его, иначе считаем по числу уже архивных целей той же длины.
+     */
+    fun openAstronomyGuide(durationDays: Int, returnScreen: AppScreen, savedToneIndex: Int? = null) {
         guideDuration = durationDays
-        guideInitialToneIndex = archivedGoals.count { it.durationDays == durationDays } % AstronomyTone.entries.size
+        guideInitialToneIndex = guideToneFor(durationDays, savedToneIndex)
         guideReturnScreen = returnScreen
         currentScreen = AppScreen.ASTRONOMY_GUIDE
     }
@@ -315,8 +336,12 @@ private fun PersonalSkyApp(
                         ArchivedDetailScreen(
                             goal = goal,
                             reducedMotionEnabled = reminderSettings.reducedMotionEnabled,
-                            onOpenAstronomyGuide = { durationDays ->
-                                openAstronomyGuide(durationDays, AppScreen.ARCHIVED_DETAIL)
+                            onOpenAstronomyGuide = { durationDays, savedToneIndex ->
+                                openAstronomyGuide(
+                                    durationDays = durationDays,
+                                    returnScreen = AppScreen.ARCHIVED_DETAIL,
+                                    savedToneIndex = savedToneIndex
+                                )
                             },
                             onBack = { currentScreen = AppScreen.ARCHIVE }
                         )
@@ -328,11 +353,27 @@ private fun PersonalSkyApp(
                 AppScreen.COMPLETION -> {
                     val goal = completedGoal
                     if (goal != null) {
+                        val completionToneIndex = guideToneFor(
+                            durationDays = goal.durationDays,
+                            savedToneIndex = goal.guideToneIndex
+                        )
+
+                        LaunchedEffect(goal.id) {
+                            goalViewModel.rememberGuideToneForCompletedGoal(
+                                goalId = goal.id,
+                                toneIndex = completionToneIndex
+                            )
+                        }
+
                         CompletionScreen(
                             goal = goal,
                             reducedMotionEnabled = reminderSettings.reducedMotionEnabled,
                             onOpenAstronomyGuide = {
-                                openAstronomyGuide(goal.durationDays, AppScreen.COMPLETION)
+                                openAstronomyGuide(
+                                    durationDays = goal.durationDays,
+                                    returnScreen = AppScreen.COMPLETION,
+                                    savedToneIndex = completionToneIndex
+                                )
                             },
                             onStartNewGoal = {
                                 goalViewModel.archiveCompletedGoal()
@@ -437,13 +478,7 @@ private fun WelcomeScreen(
     onCreateGoal: () -> Unit,
     onHowItWorks: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 28.dp, vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
+    ScreenColumn {
         BrandLabel()
 
         Column(
@@ -494,6 +529,8 @@ private fun WelcomeScreen(
             )
         }
 
+        Spacer(modifier = Modifier.height(24.dp))
+
         FooterLabel()
     }
 }
@@ -503,13 +540,7 @@ private fun HowItWorksScreen(
     onBack: () -> Unit,
     onStart: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 28.dp, vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
+    ScreenColumn {
         BrandLabel()
 
         Column(
@@ -614,13 +645,7 @@ private fun CreateGoalScreen(
         ).show()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 28.dp, vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
+    ScreenColumn {
         BrandLabel()
 
         Column(modifier = Modifier.widthIn(max = 420.dp)) {
@@ -759,6 +784,8 @@ private fun CreateGoalScreen(
             )
         }
 
+        Spacer(modifier = Modifier.height(24.dp))
+
         FooterLabel()
     }
 }
@@ -771,13 +798,7 @@ private fun ConstellationPreviewScreen(
 ) {
     val template = constellationFor(draft.durationDays)
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 28.dp, vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
+    ScreenColumn {
         BrandLabel()
 
         Column(
@@ -843,6 +864,8 @@ private fun ConstellationPreviewScreen(
             )
         }
 
+        Spacer(modifier = Modifier.height(24.dp))
+
         FooterLabel()
     }
 }
@@ -858,24 +881,15 @@ private fun AstronomyGuideScreen(
     ]
     val entry = AstronomyGuide.entryFor(durationDays, selectedTone)
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 28.dp, vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
+    ScreenColumn {
         BrandLabel()
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(565.dp),
+        Column(
+            modifier = Modifier.widthIn(max = 420.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            item {
-                Text(
-                    text = entry.title,
+            Text(
+                text = entry.title,
                     color = StarWhite,
                     fontSize = 30.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -945,7 +959,6 @@ private fun AstronomyGuideScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
-            }
         }
 
         SecondaryButton(text = "Назад", onClick = onBack)
@@ -959,13 +972,7 @@ private fun SkyOverviewScreen(
     onOpenSupport: () -> Unit,
     onBack: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 28.dp, vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
+    ScreenColumn {
         BrandLabel()
 
         Column(
@@ -1055,13 +1062,7 @@ private fun SkyOverviewScreen(
 
 @Composable
 private fun SupportProjectScreen(onBack: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 28.dp, vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
+    ScreenColumn {
         BrandLabel()
 
         Column(
@@ -1139,13 +1140,7 @@ private fun GoalManagementScreen(
     val normalizedTitle = title.trim()
     val canSaveTitle = normalizedTitle.length >= 3 && normalizedTitle != goal.title
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 28.dp, vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
+    ScreenColumn {
         BrandLabel()
 
         Column(modifier = Modifier.widthIn(max = 420.dp)) {
@@ -1304,6 +1299,8 @@ private fun GoalManagementScreen(
             }
         }
 
+        Spacer(modifier = Modifier.height(24.dp))
+
         FooterLabel()
     }
 
@@ -1416,13 +1413,7 @@ private fun ExperienceSettingsScreen(
         ).show()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 28.dp, vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
+    ScreenColumn {
         BrandLabel()
 
         Column(modifier = Modifier.widthIn(max = 420.dp)) {
@@ -1544,6 +1535,8 @@ private fun ExperienceSettingsScreen(
             AboutBlock(onOpenPrivacyPolicy = onOpenPrivacyPolicy)
         }
 
+        Spacer(modifier = Modifier.height(24.dp))
+
         FooterLabel()
     }
 }
@@ -1656,13 +1649,7 @@ private fun ReminderSettingsScreen(
         ).show()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 28.dp, vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
+    ScreenColumn {
         BrandLabel()
 
         Column(modifier = Modifier.widthIn(max = 420.dp)) {
@@ -1713,6 +1700,8 @@ private fun ReminderSettingsScreen(
             SecondaryButton(text = "К карте", onClick = onBack)
         }
 
+        Spacer(modifier = Modifier.height(24.dp))
+
         FooterLabel()
     }
 }
@@ -1761,13 +1750,7 @@ private fun ActiveSkyScreen(
     val isTodayBright = todayIndex in brightIndexes
     val view = LocalView.current
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 28.dp, vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
+    ScreenColumn {
         BrandLabel()
 
         Column(
@@ -1882,6 +1865,8 @@ private fun ActiveSkyScreen(
             )
         }
 
+        Spacer(modifier = Modifier.height(24.dp))
+
         FooterLabel()
     }
 }
@@ -1892,13 +1877,7 @@ private fun ArchiveScreen(
     onBack: () -> Unit,
     onOpenGoal: (StoredGoal) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 28.dp, vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
+    ScreenColumn {
         BrandLabel()
 
         Column(
@@ -1930,25 +1909,21 @@ private fun ArchiveScreen(
 
             Spacer(modifier = Modifier.height(22.dp))
 
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(390.dp),
+            Column(
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 if (goals.isEmpty()) {
-                    item {
-                        Text(
-                            text = "Пока здесь тихо. Когда первое созвездие завершится, его карта останется с вами.",
-                            color = StarMist,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth().padding(top = 76.dp)
-                        )
-                    }
+                    Text(
+                        text = "Пока здесь тихо. Когда первое созвездие завершится, его карта останется с вами.",
+                        color = StarMist,
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(top = 76.dp)
+                    )
                 } else {
-                    items(goals, key = { goal -> goal.id }) { goal ->
+                    goals.forEach { goal ->
                         ArchivedGoalRow(goal = goal, onClick = { onOpenGoal(goal) })
                     }
                 }
@@ -1958,6 +1933,8 @@ private fun ArchiveScreen(
 
             SecondaryButton(text = "К истории текущей цели", onClick = onBack)
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         FooterLabel()
     }
@@ -2047,7 +2024,7 @@ private fun WallpaperExportAction(goal: StoredGoal) {
 private fun ArchivedDetailScreen(
     goal: StoredGoal,
     reducedMotionEnabled: Boolean,
-    onOpenAstronomyGuide: (Int) -> Unit,
+    onOpenAstronomyGuide: (Int, Int?) -> Unit,
     onBack: () -> Unit
 ) {
     val template = constellationFor(goal.durationDays)
@@ -2064,13 +2041,7 @@ private fun ArchivedDetailScreen(
         .map { it.dayIndex }
         .toSet()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 28.dp, vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
+    ScreenColumn {
         BrandLabel()
 
         Column(
@@ -2127,13 +2098,15 @@ private fun ArchivedDetailScreen(
 
             SecondaryButton(
                 text = "О созвездии",
-                onClick = { onOpenAstronomyGuide(goal.durationDays) }
+                onClick = { onOpenAstronomyGuide(goal.durationDays, goal.guideToneIndex) }
             )
 
             Spacer(modifier = Modifier.height(10.dp))
 
             SecondaryButton(text = "К архиву", onClick = onBack)
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         FooterLabel()
     }
@@ -2162,13 +2135,7 @@ private fun CompletionScreen(
     val brightCount = brightIndexes.size
     val starCount = standardIndexes.size + brightCount
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 28.dp, vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
+    ScreenColumn {
         BrandLabel()
 
         Column(
@@ -2262,6 +2229,8 @@ private fun CompletionScreen(
             )
         }
 
+        Spacer(modifier = Modifier.height(24.dp))
+
         FooterLabel()
     }
 }
@@ -2282,13 +2251,7 @@ private fun HistoryScreen(
     val nebulaCount = goal.checkIns.count { it.type == CheckInType.MISSED }
     val remainingCount = (goal.durationDays - (todayIndex + 1)).coerceAtLeast(0)
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 28.dp, vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
+    ScreenColumn {
         BrandLabel()
 
         Column(
@@ -2389,6 +2352,8 @@ private fun HistoryScreen(
 
             SecondaryButton(text = "К карте", onClick = onBack)
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         FooterLabel()
     }
@@ -2723,6 +2688,35 @@ private fun CompactDurationChoice(
             )
         }
     }
+}
+
+/**
+ * Единый контейнер экрана: вертикальная прокрутка плюс отступы с учётом
+ * системных панелей.
+ *
+ * Раньше экраны использовали Column с Arrangement.SpaceBetween, который
+ * не даёт прокрутки: когда содержимое выше экрана, нижние блоки уходили
+ * под навигационную панель и становились недоступны. Прокрутка это решает,
+ * а safeDrawing не даёт контенту оказаться под системными панелями.
+ */
+@Composable
+private fun ScreenColumn(
+    modifier: Modifier = Modifier,
+    horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val scrollState = rememberScrollState()
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .verticalScroll(scrollState)
+            .padding(horizontal = 28.dp)
+            .padding(top = 32.dp, bottom = 28.dp),
+        horizontalAlignment = horizontalAlignment,
+        content = content
+    )
 }
 
 @Composable

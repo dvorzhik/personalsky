@@ -174,6 +174,23 @@ class GoalViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Фиксирует вариант звёздной справки за завершённой целью: тот текст,
+     * который пользователь увидел на экране завершения, будет открываться
+     * и из архива. Пока вариант не назначен, цель вернёт null и репозиторий
+     * посчитает его прежним способом.
+     */
+    fun rememberGuideToneForCompletedGoal(goalId: String, toneIndex: Int) {
+        viewModelScope.launch {
+            goalRepository.assignGuideToneIndex(goalId, toneIndex)
+            val completed = _completedGoal.value
+            if (completed != null && completed.id == goalId) {
+                _completedGoal.value = completed.copy(guideToneIndex = toneIndex)
+            }
+            refreshArchivedGoals()
+        }
+    }
+
     fun clearAllData() {
         viewModelScope.launch {
             goalRepository.clearAllData()

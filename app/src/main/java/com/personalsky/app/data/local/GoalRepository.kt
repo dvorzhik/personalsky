@@ -9,7 +9,12 @@ data class StoredGoal(
     val durationDays: Int,
     val constellationId: String,
     val startEpochDay: Long,
-    val checkIns: List<StoredCheckIn>
+    val checkIns: List<StoredCheckIn>,
+    /**
+     * Вариант звёздной справки, показанный при завершении созвездия.
+     * null — вариант ещё не выбран (цель активна), и его нужно назначить.
+     */
+    val guideToneIndex: Int? = null
 )
 
 data class StoredCheckIn(
@@ -99,6 +104,17 @@ class GoalRepository(
         goalDao.archiveCompletedGoal(goalId)
     }
 
+    /**
+     * Назначает вариант звёздной справки цели, если он ещё не назначен.
+     * Вызывается один раз при завершении созвездия, чтобы в архиве
+     * открывался ровно тот текст, который пользователь уже видел.
+     */
+    suspend fun assignGuideToneIndex(goalId: String, toneIndex: Int) {
+        val goal = goalDao.getGoalById(goalId) ?: return
+        if (goal.guideToneIndex != GoalEntity.NOT_ASSIGNED_TONE) return
+        goalDao.updateGuideToneIndex(goalId, toneIndex)
+    }
+
     suspend fun clearAllData() {
         checkInDao.deleteAllCheckIns()
         goalDao.deleteAllGoals()
@@ -150,7 +166,9 @@ class GoalRepository(
                     dayIndex = checkIn.dayIndex,
                     type = CheckInType.valueOf(checkIn.type)
                 )
-            }
+            },
+            guideToneIndex = guideToneIndex
+                .takeIf { it != GoalEntity.NOT_ASSIGNED_TONE }
         )
     }
 
