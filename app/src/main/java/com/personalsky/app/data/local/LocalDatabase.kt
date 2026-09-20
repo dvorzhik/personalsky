@@ -118,14 +118,53 @@ interface CheckInDao {
     suspend fun deleteAllCheckIns()
 }
 
+@Entity(tableName = "reminder_settings")
+data class ReminderSettingsEntity(
+    @PrimaryKey
+    val id: Int = SINGLETON_ID,
+    val enabled: Boolean = false,
+    val hour: Int = 20,
+    val minute: Int = 0,
+    val hapticsEnabled: Boolean = true,
+    val soundEnabled: Boolean = false,
+    val reducedMotionEnabled: Boolean = false,
+    /**
+     * Признак, что настройки уже перенесены из прежнего хранилища
+     * (DataStore-файл reminder_preferences.preferences_pb).
+     * Нужен, чтобы разовый перенос не затирал настройки после того,
+     * как пользователь очистил данные и получил значения по умолчанию.
+     */
+    val importedFromDataStore: Boolean = false
+) {
+    companion object {
+        const val SINGLETON_ID = 1
+    }
+}
+
+@Dao
+interface ReminderSettingsDao {
+    @Query("SELECT * FROM reminder_settings WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Int = ReminderSettingsEntity.SINGLETON_ID): ReminderSettingsEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(settings: ReminderSettingsEntity)
+
+    @Query("UPDATE reminder_settings SET importedFromDataStore = 1 WHERE id = :id")
+    suspend fun markImported(id: Int = ReminderSettingsEntity.SINGLETON_ID)
+
+    @Query("DELETE FROM reminder_settings")
+    suspend fun deleteAll()
+}
+
 @Database(
-    entities = [GoalEntity::class, CheckInEntity::class],
-    version = 2,
-    exportSchema = false
+    entities = [GoalEntity::class, CheckInEntity::class, ReminderSettingsEntity::class],
+    version = 3,
+    exportSchema = true
 )
 abstract class PersonalSkyDatabase : RoomDatabase() {
     abstract fun goalDao(): GoalDao
     abstract fun checkInDao(): CheckInDao
+    abstract fun reminderSettingsDao(): ReminderSettingsDao
 
     companion object {
         @Volatile
@@ -136,10 +175,36 @@ abstract class PersonalSkyDatabase : RoomDatabase() {
          * Существующие цели получают -1 («ещё не назначен»), поэтому
          * у уже завершённых спринтов справка выберется по прежней логике.
          */
-        private val MIGRATION_1_2 = object : Migration(1, 2) {
+        val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
                     "ALTER TABLE goals ADD COLUMN guideToneIndex INTEGER NOT NULL DEFAULT -1"
+                )
+            }
+        }
+
+        /**
+         * v2 -> v3: настройки напоминаний переехали из DataStore в Room.
+         * Таблица создаётся пустой: перенос старых значений выполняет
+         * репозиторий при первом чтении, поэтому данные не теряются,
+         * а зависимость androidx.datastore уходит из приложения.
+         */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `reminder_settings` (
+                        `id` INTEGER NOT NULL,
+                        `enabled` INTEGER NOT NULL,
+                        `hour` INTEGER NOT NULL,
+                        `minute` INTEGER NOT NULL,
+                        `hapticsEnabled` INTEGER NOT NULL,
+                        `soundEnabled` INTEGER NOT NULL,
+                        `reducedMotionEnabled` INTEGER NOT NULL,
+                        `importedFromDataStore` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
                 )
             }
         }
@@ -151,7 +216,7 @@ abstract class PersonalSkyDatabase : RoomDatabase() {
                     PersonalSkyDatabase::class.java,
                     "personal_sky.db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { instance = it }
             }
