@@ -148,6 +148,51 @@ function Get-Aapt2 {
     Fail "Не найден aapt2 в $buildToolsRoot — без него нельзя проверить versionCode APK."
 }
 
+# --- Поиск JDK для Gradle ---------------------------------------------------
+# gradlew из чистой консоли падает с «JAVA_HOME is not set», если Java не в PATH.
+# Android Studio работает, потому что использует встроенный JBR, поэтому ищем
+# его же: сначала уважаем уже заданный JAVA_HOME, дальше перебираем типовые места.
+function Get-JavaHome {
+    if (-not [string]::IsNullOrWhiteSpace($env:JAVA_HOME) -and (Test-Path -LiteralPath (Join-Path $env:JAVA_HOME 'bin\java.exe'))) {
+        return (Resolve-Path -LiteralPath $env:JAVA_HOME).Path
+    }
+
+    $candidates = New-Object System.Collections.Generic.List[string]
+
+    foreach ($studioRoot in @(
+            (Join-Path $env:ProgramFiles 'Android\Android Studio'),
+            (Join-Path $env:LOCALAPPDATA 'Programs\Android Studio'),
+            (Join-Path ${env:ProgramFiles(x86)} 'Android\Android Studio')
+        )) {
+        if ([string]::IsNullOrWhiteSpace($studioRoot)) { continue }
+        $candidates.Add((Join-Path $studioRoot 'jbr'))
+    }
+
+    $candidates.Add((Join-Path $env:ProgramFiles 'Java\jdk-25'))
+    $candidates.Add((Join-Path $env:ProgramFiles 'Eclipse Adoptium'))
+
+    foreach ($candidate in $candidates) {
+        if ([string]::IsNullOrWhiteSpace($candidate) -or -not (Test-Path -LiteralPath $candidate)) { continue }
+
+        $direct = Join-Path $candidate 'bin\java.exe'
+        if (Test-Path -LiteralPath $direct) {
+            return (Resolve-Path -LiteralPath $candidate).Path
+        }
+
+        # У Eclipse Adoptium и ему подобных между корнем и bin лежит подкаталог версии.
+        $nested = Get-ChildItem -LiteralPath $candidate -Directory -ErrorAction SilentlyContinue |
+            ForEach-Object { Join-Path $_.FullName 'bin\java.exe' } |
+            Where-Object { Test-Path -LiteralPath $_ } |
+            Select-Object -First 1
+        if ($nested) { return (Split-Path -Parent (Split-Path -Parent $nested)) }
+    }
+
+    Fail @'
+JDK не найден, а он нужен для -Build. Задайте JAVA_HOME, например:
+  $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
+'@
+}
+
 # --- Чтение версии APK ------------------------------------------------------
 function Get-ApkBadging {
     param(
@@ -252,6 +297,11 @@ if ($Build) {
     Write-Step 'Сборка release (gradlew assembleRelease)'
     $gradlew = Join-Path $ProjectRoot 'gradlew.bat'
     if (-not (Test-Path -LiteralPath $gradlew)) { Fail "Не найден $gradlew" }
+
+    # gradlew.bat требует JAVA_HOME: подставляем найденный JDK в текущую сессию.
+    $javaHome = Get-JavaHome
+    $env:JAVA_HOME = $javaHome
+    Write-Host "    JDK:   $javaHome"
 
     & $gradlew --project-dir $ProjectRoot assembleRelease
     if ($LASTEXITCODE -ne 0) { Fail "Сборка завершилась с кодом $LASTEXITCODE." }

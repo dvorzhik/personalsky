@@ -77,3 +77,6 @@ tools\install-release.cmd -Build -Serial 37281FDJH0033N
   PowerShell 5.1 читает их как ANSI и портит русский текст.
 * Установленный Android SDK с `platform-tools\adb.exe` и `build-tools\*\aapt2.exe`.
 * Включённая на телефоне отладка по USB и подтверждённая авторизация компьютера.
+* Для `-Build` нужен JDK. Он не обязан быть в `PATH`: скрипт ищет его сам
+  (сначала `JAVA_HOME`, затем встроенный JBR Android Studio) и подставляет
+  в текущую сессию, поэтому `gradlew` работает и из чистой консоли.
