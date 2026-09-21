@@ -1235,7 +1235,7 @@ private fun GoalManagementScreen(
 
             Column(modifier = Modifier.widthIn(max = 420.dp)) {
                 Text(
-                    text = "Управление\nцелью",
+                    text = "Управление целью",
                     color = StarWhite,
                     fontSize = 30.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -1514,7 +1514,7 @@ private fun ExperienceSettingsScreen(
 
             Column(modifier = Modifier.widthIn(max = 420.dp)) {
                 Text(
-                    text = "Ритм\nпути",
+                    text = "Ритм пути",
                     color = StarWhite,
                     fontSize = 30.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -1901,7 +1901,7 @@ private fun ActiveSkyScreen(
 
                 Text(
                     text = when {
-                        todayIndex in brightIndexes -> "Сегодня вы сделали больше. Звезда сияет ярче."
+                        todayIndex in brightIndexes -> "Сегодня вы сделали больше.\nЗвезда сияет ярче."
                         isTodayCompleted -> "Сегодняшняя звезда уже горит."
                         nebulaIndexes.isNotEmpty() -> "Туманность хранит пропущенный день. Путь продолжается."
                         else -> "Сегодня для созвездия есть место."
@@ -1983,7 +1983,7 @@ private fun ArchiveScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Архив\nнебосвода",
+                    text = "Архив небосвода",
                     color = StarWhite,
                     fontSize = 30.sp,
                     fontWeight = FontWeight.SemiBold,
