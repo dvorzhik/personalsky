@@ -196,11 +196,53 @@ private fun PersonalSkyApp(
         currentScreen = AppScreen.ASTRONOMY_GUIDE
     }
 
-    fun openPrivacyPolicy() {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.PRIVACY_POLICY_URL)).apply {
+    fun openExternalLink(url: String) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         runCatching { context.startActivity(intent) }
+    }
+
+    fun openPrivacyPolicy() {
+        openExternalLink(BuildConfig.PRIVACY_POLICY_URL)
+    }
+
+    fun openProjectPage() {
+        openExternalLink(BuildConfig.PROJECT_PAGE_URL)
+    }
+
+    /**
+     * Открывает карточку приложения в Google Play для добровольной поддержки
+     * оценкой. Ссылка на магазин не выводится в интерфейс: если приложение
+     * ещё не опубликовано, каталог покажет нейтральное сообщение вместо
+     * ошибки, а не сломает экран поддержки.
+     */
+    fun openPlayStoreListing() {
+        openExternalLink("market://details?id=${BuildConfig.APPLICATION_ID}")
+        openExternalLink(
+            "https://play.google.com/store/apps/details?id=${BuildConfig.APPLICATION_ID}"
+        )
+    }
+
+    /**
+     * Системное окно «Поделиться»: пользователь сам выбирает приложение.
+     * Никаких своих сетевых запросов и аккаунтов — приложение остаётся локальным.
+     */
+    fun shareApp() {
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(
+                Intent.EXTRA_TEXT,
+                context.getString(R.string.share_app_message)
+            )
+        }
+        val chooser = Intent.createChooser(
+            shareIntent,
+            context.getString(R.string.share_app_chooser_title)
+        ).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        runCatching { context.startActivity(chooser) }
     }
 
     BackHandler(
@@ -403,6 +445,9 @@ private fun PersonalSkyApp(
                 )
 
                 AppScreen.SUPPORT_PROJECT -> SupportProjectScreen(
+                    onOpenProjectPage = { openProjectPage() },
+                    onOpenPlayStore = { openPlayStoreListing() },
+                    onShareApp = { shareApp() },
                     onBack = { currentScreen = AppScreen.SKY_OVERVIEW }
                 )
 
@@ -503,29 +548,26 @@ private fun WelcomeScreen(
                 lineHeight = 25.sp,
                 textAlign = TextAlign.Center
             )
+        }
 
-            Spacer(modifier = Modifier.height(34.dp))
-
+        ScreenActionGroup {
             PrimaryButton(
                 text = "Создать первую цель",
                 onClick = onCreateGoal
             )
-
-            Spacer(modifier = Modifier.height(12.dp))
 
             SecondaryButton(
                 text = "Как это работает",
                 onClick = onHowItWorks
             )
 
-            Spacer(modifier = Modifier.height(18.dp))
-
             Text(
                 text = "Даже туманность — часть пути.",
                 color = StarMist,
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 8.dp)
             )
         }
 
@@ -548,29 +590,29 @@ private fun HowItWorksScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Как это\nработает",
+                text = "Как это работает",
                 color = StarWhite,
-                fontSize = 30.sp,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.SemiBold,
-                lineHeight = 34.sp,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(22.dp))
 
             HowItWorksStep(
                 title = "1. Выберите путь",
                 text = "Одна цель и короткий срок становятся вашим созвездием."
             )
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             HowItWorksStep(
                 title = "2. Зажигайте звёзды",
                 text = "Обычная отметка — звезда. Если сделали больше, она светит ярче."
             )
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             HowItWorksStep(
                 title = "3. Не обнуляйте путь",
@@ -578,9 +620,9 @@ private fun HowItWorksScreen(
             )
         }
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        ScreenActionGroup {
             PrimaryButton(text = "Создать первую цель", onClick = onStart)
-            Spacer(modifier = Modifier.height(10.dp))
+
             SecondaryButton(text = "Назад", onClick = onBack)
         }
     }
@@ -759,9 +801,9 @@ private fun CreateGoalScreen(
                 onEnabledChange = { reminderEnabled = it },
                 onTimeClick = { openTimePicker() }
             )
+        }
 
-            Spacer(modifier = Modifier.height(14.dp))
-
+        ScreenActionGroup {
             PrimaryButton(
                 text = "Выбрать созвездие",
                 onClick = {
@@ -775,8 +817,6 @@ private fun CreateGoalScreen(
                 },
                 enabled = isGoalValid
             )
-
-            Spacer(modifier = Modifier.height(10.dp))
 
             SecondaryButton(
                 text = "Назад",
@@ -848,15 +888,13 @@ private fun ConstellationPreviewScreen(
                 lineHeight = 20.sp,
                 textAlign = TextAlign.Center
             )
+        }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
+        ScreenActionGroup {
             PrimaryButton(
                 text = "Начать экспедицию",
                 onClick = onStart
             )
-
-            Spacer(modifier = Modifier.height(10.dp))
 
             SecondaryButton(
                 text = "Изменить цель",
@@ -890,78 +928,80 @@ private fun AstronomyGuideScreen(
         ) {
             Text(
                 text = entry.title,
-                    color = StarWhite,
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                color = StarWhite,
+                fontSize = 30.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
 
-                Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
+            Text(
+                text = entry.headline,
+                color = StarLavender,
+                fontSize = 15.sp,
+                lineHeight = 21.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "${selectedTone.label} · ${selectedTone.subtitle}",
+                color = BrightGold,
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(26.dp))
+
+            entry.paragraphs.forEach { paragraph ->
                 Text(
-                    text = entry.headline,
-                    color = StarLavender,
-                    fontSize = 15.sp,
-                    lineHeight = 21.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = "${selectedTone.label} · ${selectedTone.subtitle}",
-                    color = BrightGold,
-                    fontSize = 12.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(26.dp))
-
-                entry.paragraphs.forEach { paragraph ->
-                    Text(
-                        text = paragraph,
-                        color = StarMist,
-                        fontSize = 15.sp,
-                        lineHeight = 22.sp,
-                        textAlign = TextAlign.Start,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(15.dp))
-                }
-
-                Text(
-                    text = "Для наблюдения",
-                    color = BrightGold,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(5.dp))
-
-                Text(
-                    text = entry.observationTip,
+                    text = paragraph,
                     color = StarMist,
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp,
+                    fontSize = 15.sp,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Start,
                     modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(15.dp))
+            }
 
-                Spacer(modifier = Modifier.height(18.dp))
+            Text(
+                text = "Для наблюдения",
+                color = BrightGold,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.fillMaxWidth()
+            )
 
-                Text(
-                    text = entry.sourcesLabel,
-                    color = StarMist.copy(alpha = 0.72f),
-                    fontSize = 11.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Text(
+                text = entry.observationTip,
+                color = StarMist,
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Text(
+                text = entry.sourcesLabel,
+                color = StarMist.copy(alpha = 0.72f),
+                fontSize = 11.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
-        SecondaryButton(text = "Назад", onClick = onBack)
+        ScreenActionGroup {
+            SecondaryButton(text = "Назад", onClick = onBack)
+        }
     }
 }
 
@@ -1043,25 +1083,28 @@ private fun SkyOverviewScreen(
             )
         }
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        ScreenActionGroup {
+            SecondaryButton(text = "К карте", onClick = onBack)
+
             Text(
                 text = "Поддержать проект",
                 color = StarLavender.copy(alpha = 0.84f),
                 fontSize = 13.sp,
-                modifier = Modifier.clickable(onClick = onOpenSupport)
+                modifier = Modifier
+                    .clickable(onClick = onOpenSupport)
+                    .padding(vertical = 6.dp)
             )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            SecondaryButton(text = "К карте", onClick = onBack)
         }
     }
 }
 
 @Composable
-private fun SupportProjectScreen(onBack: () -> Unit) {
+private fun SupportProjectScreen(
+    onOpenProjectPage: () -> Unit,
+    onOpenPlayStore: () -> Unit,
+    onShareApp: () -> Unit,
+    onBack: () -> Unit
+) {
     ScreenColumn {
         BrandLabel()
 
@@ -1102,7 +1145,8 @@ private fun SupportProjectScreen(onBack: () -> Unit) {
             Spacer(modifier = Modifier.height(18.dp))
 
             Text(
-                text = "Поддержка будет только добровольной и никогда не откроет скрытые функции. Сейчас здесь нет платежей: способ поддержки появится отдельным и прозрачным шагом после выбора подходящей платформы.",
+                text = "Вы можете поддержать проект, поставив ему оценку и поделившись " +
+                        "ссылкой с друзьями.",
                 color = StarMist,
                 fontSize = 15.sp,
                 lineHeight = 22.sp,
@@ -1110,7 +1154,24 @@ private fun SupportProjectScreen(onBack: () -> Unit) {
             )
         }
 
-        SecondaryButton(text = "К небосводу", onClick = onBack)
+        ScreenActionGroup {
+            PrimaryButton(
+                text = "Оценить в Google Play",
+                onClick = onOpenPlayStore
+            )
+
+            SecondaryButton(
+                text = "Поделиться с друзьями",
+                onClick = onShareApp
+            )
+
+            SecondaryButton(
+                text = "Открыть страницу проекта",
+                onClick = onOpenProjectPage
+            )
+
+            SecondaryButton(text = "К небосводу", onClick = onBack)
+        }
     }
 }
 
@@ -1257,13 +1318,17 @@ private fun GoalManagementScreen(
                     fontWeight = FontWeight.SemiBold
                 )
             }
+        }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
+        ScreenActionGroup {
             SecondaryButton(text = "К карте", onClick = onBack)
+        }
 
-            Spacer(modifier = Modifier.height(22.dp))
-
+        Column(
+            modifier = Modifier
+                .widthIn(max = 420.dp)
+                .padding(top = 30.dp)
+        ) {
             Text(
                 text = "Локальные данные",
                 color = StarWhite,
@@ -1509,9 +1574,9 @@ private fun ExperienceSettingsScreen(
                     ExperienceFeedback.celebrateStandard(view, hapticsEnabled, soundEnabled)
                 }
             )
+        }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
+        ScreenActionGroup {
             PrimaryButton(
                 text = "Сохранить настройки",
                 onClick = {
@@ -1526,12 +1591,14 @@ private fun ExperienceSettingsScreen(
                 }
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
-
             SecondaryButton(text = "К карте", onClick = onBack)
+        }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
+        Column(
+            modifier = Modifier
+                .widthIn(max = 420.dp)
+                .padding(top = 30.dp)
+        ) {
             AboutBlock(onOpenPrivacyPolicy = onOpenPrivacyPolicy)
         }
 
@@ -1679,23 +1746,20 @@ private fun ReminderSettingsScreen(
                 onEnabledChange = { enabled = it },
                 onTimeClick = { openTimePicker() }
             )
+        }
 
-            Spacer(modifier = Modifier.height(28.dp))
-
+        ScreenActionGroup {
             PrimaryButton(
                 text = "Сохранить время",
                 onClick = { onSave(enabled, hour, minute) }
             )
 
             if (enabled) {
-                Spacer(modifier = Modifier.height(10.dp))
                 SecondaryButton(
                     text = "Проверить уведомление",
                     onClick = onTestNotification
                 )
             }
-
-            Spacer(modifier = Modifier.height(10.dp))
 
             SecondaryButton(text = "К карте", onClick = onBack)
         }
@@ -1812,9 +1876,9 @@ private fun ActiveSkyScreen(
                 lineHeight = 22.sp,
                 textAlign = TextAlign.Center
             )
+        }
 
-            Spacer(modifier = Modifier.height(18.dp))
-
+        ScreenActionGroup {
             PrimaryButton(
                 text = if (isTodayCompleted) "Сегодняшняя звезда горит" else "Зажечь сегодняшнюю звезду",
                 onClick = {
@@ -1823,8 +1887,6 @@ private fun ActiveSkyScreen(
                 },
                 enabled = !isTodayCompleted
             )
-
-            Spacer(modifier = Modifier.height(10.dp))
 
             if (isTodayBright) {
                 SecondaryButton(
@@ -1848,20 +1910,18 @@ private fun ActiveSkyScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
             SecondaryButton(
                 text = "История созвездия",
                 onClick = onOpenHistory
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
-
             Text(
                 text = "Управлять целью",
                 color = StarLavender,
                 fontSize = 13.sp,
-                modifier = Modifier.clickable(onClick = onOpenGoalSettings)
+                modifier = Modifier
+                    .clickable(onClick = onOpenGoalSettings)
+                    .padding(vertical = 6.dp)
             )
         }
 
@@ -1928,9 +1988,9 @@ private fun ArchiveScreen(
                     }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
+        ScreenActionGroup {
             SecondaryButton(text = "К истории текущей цели", onClick = onBack)
         }
 
@@ -2089,19 +2149,15 @@ private fun ArchivedDetailScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             HistoryLegend()
+        }
 
-            Spacer(modifier = Modifier.height(18.dp))
-
+        ScreenActionGroup {
             WallpaperExportAction(goal = goal)
-
-            Spacer(modifier = Modifier.height(10.dp))
 
             SecondaryButton(
                 text = "О созвездии",
                 onClick = { onOpenAstronomyGuide(goal.durationDays, goal.guideToneIndex) }
             )
-
-            Spacer(modifier = Modifier.height(10.dp))
 
             SecondaryButton(text = "К архиву", onClick = onBack)
         }
@@ -2209,19 +2265,15 @@ private fun CompletionScreen(
                 lineHeight = 20.sp,
                 textAlign = TextAlign.Center
             )
+        }
 
-            Spacer(modifier = Modifier.height(18.dp))
-
+        ScreenActionGroup {
             SecondaryButton(
                 text = "Открыть звёздную справку",
                 onClick = onOpenAstronomyGuide
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
-
             WallpaperExportAction(goal = goal)
-
-            Spacer(modifier = Modifier.height(10.dp))
 
             PrimaryButton(
                 text = "Начать новое созвездие",
@@ -2333,22 +2385,18 @@ private fun HistoryScreen(
                 lineHeight = 20.sp,
                 textAlign = TextAlign.Center
             )
+        }
 
-            Spacer(modifier = Modifier.height(18.dp))
-
+        ScreenActionGroup {
             SecondaryButton(
                 text = "Небосвод пути",
                 onClick = onOpenSkyOverview
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
-
             SecondaryButton(
                 text = "Архив небосвода",
                 onClick = onOpenArchive
             )
-
-            Spacer(modifier = Modifier.height(10.dp))
 
             SecondaryButton(text = "К карте", onClick = onBack)
         }
@@ -2703,6 +2751,7 @@ private fun CompactDurationChoice(
 private fun ScreenColumn(
     modifier: Modifier = Modifier,
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val scrollState = rememberScrollState()
@@ -2715,6 +2764,31 @@ private fun ScreenColumn(
             .padding(horizontal = 28.dp)
             .padding(top = 32.dp, bottom = 28.dp),
         horizontalAlignment = horizontalAlignment,
+        verticalArrangement = verticalArrangement,
+        content = content
+    )
+}
+
+/**
+ * Нижний блок действий экрана: кнопки и текстовые ссылки под содержимым.
+ *
+ * Раньше отступ между последним абзацем и первой кнопкой задавался вручную —
+ * `Spacer(10.dp)` рядом с одной кнопкой и `Spacer(24.dp)` рядом с другой, —
+ * и на коротких экранах кнопка прилипала к тексту. Контейнер задаёт этот
+ * зазор один раз для всех экранов, а `verticalArrangement` держит одинаковый
+ * шаг между самими кнопками.
+ */
+@Composable
+private fun ScreenActionGroup(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 36.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
         content = content
     )
 }

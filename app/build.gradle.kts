@@ -43,7 +43,12 @@ android {
         buildConfigField(
             "String",
             "PRIVACY_POLICY_URL",
-            "\"https://www.dvorzhik.ru/vibecoding/#personalsky_privacy\""
+            "\"https://www.dvorzhik.ru/personal-sky/privacy\""
+        )
+        buildConfigField(
+            "String",
+            "PROJECT_PAGE_URL",
+            "\"https://www.dvorzhik.ru/personal-sky\""
         )
     }
 

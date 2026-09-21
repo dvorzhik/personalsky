@@ -20,4 +20,8 @@
     <string name="notification_channel_description">Мягкое ежедневное приглашение вернуться к своей цели</string>
     <string name="notification_daily_reminder">Зажгите сегодняшнюю звезду</string>
     <string name="notification_test_reminder">Проверка пройдена. Ваш личный небосвод рядом.</string>
+
+    <!-- Поддержка проекта -->
+    <string name="share_app_chooser_title">Поделиться приложением</string>
+    <string name="share_app_message">«Личный небосвод» — спокойный трекер небольших целей: пропущенный день не обнуляет путь, а становится туманностью. Бесплатно, локально и без рекламы: https://www.dvorzhik.ru/personal-sky</string>
 </resources>
