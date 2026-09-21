@@ -1,4 +1,4 @@
-package com.personalsky.app
+﻿package com.personalsky.app
 
 import android.Manifest
 import android.app.TimePickerDialog
@@ -143,6 +143,13 @@ private fun PersonalSkyApp(
     var guideDuration by remember { mutableIntStateOf(7) }
     var guideInitialToneIndex by remember { mutableIntStateOf(0) }
     var guideReturnScreen by remember { mutableStateOf(AppScreen.ACTIVE_SKY) }
+
+    /**
+     * Куда вернуться с экрана поддержки. Экран открывается из двух мест —
+     * с небосвода пути и из архива, — и «назад» должен вести туда, откуда
+     * пользователь пришёл, а не всегда в одно и то же место.
+     */
+    var supportReturnScreen by remember { mutableStateOf(AppScreen.SKY_OVERVIEW) }
     val context = LocalContext.current
     var showTestAfterPermission by remember { mutableStateOf(false) }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -260,7 +267,7 @@ private fun PersonalSkyApp(
             AppScreen.EXPERIENCE_SETTINGS -> currentScreen = AppScreen.ACTIVE_SKY
             AppScreen.GOAL_SETTINGS -> currentScreen = AppScreen.ACTIVE_SKY
             AppScreen.SKY_OVERVIEW -> currentScreen = AppScreen.ACTIVE_SKY
-            AppScreen.SUPPORT_PROJECT -> currentScreen = AppScreen.SKY_OVERVIEW
+            AppScreen.SUPPORT_PROJECT -> currentScreen = supportReturnScreen
             AppScreen.ASTRONOMY_GUIDE -> currentScreen = guideReturnScreen
             AppScreen.ARCHIVE -> currentScreen = AppScreen.HISTORY
             AppScreen.ARCHIVED_DETAIL -> currentScreen = AppScreen.ARCHIVE
@@ -365,6 +372,10 @@ private fun PersonalSkyApp(
 
                 AppScreen.ARCHIVE -> ArchiveScreen(
                     goals = archivedGoals,
+                    onOpenSupport = {
+                        supportReturnScreen = AppScreen.ARCHIVE
+                        currentScreen = AppScreen.SUPPORT_PROJECT
+                    },
                     onBack = { currentScreen = AppScreen.HISTORY },
                     onOpenGoal = { goal ->
                         selectedArchivedGoal = goal
@@ -440,7 +451,10 @@ private fun PersonalSkyApp(
                         goalViewModel.refreshArchivedGoals()
                         currentScreen = AppScreen.ARCHIVE
                     },
-                    onOpenSupport = { currentScreen = AppScreen.SUPPORT_PROJECT },
+                    onOpenSupport = {
+                        supportReturnScreen = AppScreen.SKY_OVERVIEW
+                        currentScreen = AppScreen.SUPPORT_PROJECT
+                    },
                     onBack = { currentScreen = AppScreen.ACTIVE_SKY }
                 )
 
@@ -448,7 +462,7 @@ private fun PersonalSkyApp(
                     onOpenProjectPage = { openProjectPage() },
                     onOpenPlayStore = { openPlayStoreListing() },
                     onShareApp = { shareApp() },
-                    onBack = { currentScreen = AppScreen.SKY_OVERVIEW }
+                    onBack = { currentScreen = supportReturnScreen }
                 )
 
                 AppScreen.GOAL_SETTINGS -> {
@@ -524,30 +538,32 @@ private fun WelcomeScreen(
     onHowItWorks: () -> Unit
 ) {
     ScreenColumn {
-        BrandLabel()
+        ScreenHeader {
+            BrandLabel()
 
-        Column(
-            modifier = Modifier.widthIn(max = 420.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Личный\nнебосвод",
-                color = StarWhite,
-                fontSize = 42.sp,
-                fontWeight = FontWeight.SemiBold,
-                lineHeight = 46.sp,
-                textAlign = TextAlign.Center
-            )
+            Column(
+                modifier = Modifier.widthIn(max = 420.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Личный\nнебосвод",
+                    color = StarWhite,
+                    fontSize = 42.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 46.sp,
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-            Text(
-                text = "Маленькие шаги становятся звёздами.\nБез серий, обнулений и давления.",
-                color = StarMist,
-                fontSize = 17.sp,
-                lineHeight = 25.sp,
-                textAlign = TextAlign.Center
-            )
+                Text(
+                    text = "Маленькие шаги становятся звёздами.\nБез серий, обнулений и давления.",
+                    color = StarMist,
+                    fontSize = 17.sp,
+                    lineHeight = 25.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
 
         ScreenActionGroup {
@@ -583,41 +599,43 @@ private fun HowItWorksScreen(
     onStart: () -> Unit
 ) {
     ScreenColumn {
-        BrandLabel()
+        ScreenHeader {
+            BrandLabel()
 
-        Column(
-            modifier = Modifier.widthIn(max = 420.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Как это работает",
-                color = StarWhite,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Column(
+                modifier = Modifier.widthIn(max = 420.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Как это работает",
+                    color = StarWhite,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-            Spacer(modifier = Modifier.height(22.dp))
+                Spacer(modifier = Modifier.height(22.dp))
 
-            HowItWorksStep(
-                title = "1. Выберите путь",
-                text = "Одна цель и короткий срок становятся вашим созвездием."
-            )
+                HowItWorksStep(
+                    title = "1. Выберите путь",
+                    text = "Одна цель и короткий срок становятся вашим созвездием."
+                )
 
-            Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-            HowItWorksStep(
-                title = "2. Зажигайте звёзды",
-                text = "Обычная отметка — звезда. Если сделали больше, она светит ярче."
-            )
+                HowItWorksStep(
+                    title = "2. Зажигайте звёзды",
+                    text = "Обычная отметка — звезда. Если сделали больше, она светит ярче."
+                )
 
-            Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-            HowItWorksStep(
-                title = "3. Не обнуляйте путь",
-                text = "Пропуск остаётся мягкой туманностью и не стирает уже пройденное."
-            )
+                HowItWorksStep(
+                    title = "3. Не обнуляйте путь",
+                    text = "Пропуск остаётся мягкой туманностью и не стирает уже пройденное."
+                )
+            }
         }
 
         ScreenActionGroup {
@@ -688,119 +706,121 @@ private fun CreateGoalScreen(
     }
 
     ScreenColumn {
-        BrandLabel()
+        ScreenHeader {
+            BrandLabel()
 
-        Column(modifier = Modifier.widthIn(max = 420.dp)) {
-            Text(
-                text = "Начните\nс маленького света",
-                color = StarWhite,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.SemiBold,
-                lineHeight = 34.sp
-            )
+            Column(modifier = Modifier.widthIn(max = 420.dp)) {
+                Text(
+                    text = "Начните\nс маленького света",
+                    color = StarWhite,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 34.sp
+                )
 
-            Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(TitleGap))
 
-            Text(
-                text = "Одна цель. Один срок. Одно созвездие, которое будет расти вместе с вами.",
-                color = StarMist,
-                fontSize = 15.sp,
-                lineHeight = 21.sp
-            )
+                Text(
+                    text = "Одна цель. Один срок. Одно созвездие, которое будет расти вместе с вами.",
+                    color = StarMist,
+                    fontSize = 15.sp,
+                    lineHeight = 21.sp
+                )
 
-            Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-            OutlinedTextField(
-                value = goalTitle,
-                onValueChange = { if (it.length <= 60) goalTitle = it },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                label = { Text("Ваша цель") },
-                placeholder = { Text("Например, читать каждый вечер") },
-                supportingText = {
-                    Text(
-                        text = "От 3 до 60 символов",
-                        color = StarMist.copy(alpha = 0.78f),
-                        fontSize = 12.sp
+                OutlinedTextField(
+                    value = goalTitle,
+                    onValueChange = { if (it.length <= 60) goalTitle = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text("Ваша цель") },
+                    placeholder = { Text("Например, читать каждый вечер") },
+                    supportingText = {
+                        Text(
+                            text = "От 3 до 60 символов",
+                            color = StarMist.copy(alpha = 0.78f),
+                            fontSize = 12.sp
+                        )
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = StarWhite,
+                        unfocusedTextColor = StarWhite,
+                        focusedContainerColor = FieldBlack,
+                        unfocusedContainerColor = FieldBlack,
+                        focusedBorderColor = StarLavender,
+                        unfocusedBorderColor = StarMist.copy(alpha = 0.45f),
+                        focusedLabelColor = StarLavender,
+                        unfocusedLabelColor = StarMist,
+                        cursorColor = StarLavender,
+                        focusedPlaceholderColor = StarMist.copy(alpha = 0.5f),
+                        unfocusedPlaceholderColor = StarMist.copy(alpha = 0.5f)
+                    ),
+                    shape = RoundedCornerShape(18.dp)
+                )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Text(
+                    text = "Длительность экспедиции",
+                    color = StarWhite,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(modifier = Modifier.height(TitleGap))
+
+                Text(
+                    text = "Срок определит форму созвездия.",
+                    color = StarMist,
+                    fontSize = 13.sp
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    CompactDurationChoice(
+                        days = 5,
+                        label = "Импульс",
+                        selected = selectedDuration == 5,
+                        onClick = { selectedDuration = 5 }
                     )
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = StarWhite,
-                    unfocusedTextColor = StarWhite,
-                    focusedContainerColor = FieldBlack,
-                    unfocusedContainerColor = FieldBlack,
-                    focusedBorderColor = StarLavender,
-                    unfocusedBorderColor = StarMist.copy(alpha = 0.45f),
-                    focusedLabelColor = StarLavender,
-                    unfocusedLabelColor = StarMist,
-                    cursorColor = StarLavender,
-                    focusedPlaceholderColor = StarMist.copy(alpha = 0.5f),
-                    unfocusedPlaceholderColor = StarMist.copy(alpha = 0.5f)
-                ),
-                shape = RoundedCornerShape(18.dp)
-            )
+                    CompactDurationChoice(
+                        days = 7,
+                        label = "Ритм",
+                        selected = selectedDuration == 7,
+                        onClick = { selectedDuration = 7 }
+                    )
+                    CompactDurationChoice(
+                        days = 14,
+                        label = "Путь",
+                        selected = selectedDuration == 14,
+                        onClick = { selectedDuration = 14 }
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
-                text = "Длительность экспедиции",
-                color = StarWhite,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Spacer(modifier = Modifier.height(5.dp))
-
-            Text(
-                text = "Срок определит форму созвездия.",
-                color = StarMist,
-                fontSize = 13.sp
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                CompactDurationChoice(
-                    days = 5,
-                    label = "Импульс",
-                    selected = selectedDuration == 5,
-                    onClick = { selectedDuration = 5 }
+                Text(
+                    text = durationDescription(selectedDuration),
+                    color = StarLavender,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
                 )
-                CompactDurationChoice(
-                    days = 7,
-                    label = "Ритм",
-                    selected = selectedDuration == 7,
-                    onClick = { selectedDuration = 7 }
-                )
-                CompactDurationChoice(
-                    days = 14,
-                    label = "Путь",
-                    selected = selectedDuration == 14,
-                    onClick = { selectedDuration = 14 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                ReminderSetupRow(
+                    enabled = reminderEnabled,
+                    hour = reminderHour,
+                    minute = reminderMinute,
+                    onEnabledChange = { reminderEnabled = it },
+                    onTimeClick = { openTimePicker() }
                 )
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = durationDescription(selectedDuration),
-                color = StarLavender,
-                fontSize = 13.sp,
-                lineHeight = 18.sp
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            ReminderSetupRow(
-                enabled = reminderEnabled,
-                hour = reminderHour,
-                minute = reminderMinute,
-                onEnabledChange = { reminderEnabled = it },
-                onTimeClick = { openTimePicker() }
-            )
         }
 
         ScreenActionGroup {
@@ -839,55 +859,57 @@ private fun ConstellationPreviewScreen(
     val template = constellationFor(draft.durationDays)
 
     ScreenColumn {
-        BrandLabel()
+        ScreenHeader {
+            BrandLabel()
 
-        Column(
-            modifier = Modifier.widthIn(max = 420.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Ваше созвездие",
-                color = StarWhite,
-                fontSize = 29.sp,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center
-            )
+            Column(
+                modifier = Modifier.widthIn(max = 420.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Ваше созвездие",
+                    color = StarWhite,
+                    fontSize = 29.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(TitleGap))
 
-            Text(
-                text = draft.title,
-                color = StarLavender,
-                fontSize = 17.sp,
-                lineHeight = 23.sp,
-                textAlign = TextAlign.Center
-            )
+                Text(
+                    text = draft.title,
+                    color = StarLavender,
+                    fontSize = 17.sp,
+                    lineHeight = 23.sp,
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-            ConstellationCanvas(
-                template = template,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp)
-            )
+                ConstellationCanvas(
+                    template = template,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(250.dp)
+                )
 
-            Text(
-                text = template.name,
-                color = StarWhite,
-                fontSize = 23.sp,
-                fontWeight = FontWeight.SemiBold
-            )
+                Text(
+                    text = template.name,
+                    color = StarWhite,
+                    fontSize = 23.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
 
-            Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(TitleGap))
 
-            Text(
-                text = "${draft.durationDays} дней · ${template.previewDescription}",
-                color = StarMist,
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                textAlign = TextAlign.Center
-            )
+                Text(
+                    text = "${draft.durationDays} дней · ${template.previewDescription}",
+                    color = StarMist,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
 
         ScreenActionGroup {
@@ -920,83 +942,85 @@ private fun AstronomyGuideScreen(
     val entry = AstronomyGuide.entryFor(durationDays, selectedTone)
 
     ScreenColumn {
-        BrandLabel()
+        ScreenHeader {
+            BrandLabel()
 
-        Column(
-            modifier = Modifier.widthIn(max = 420.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = entry.title,
-                color = StarWhite,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = entry.headline,
-                color = StarLavender,
-                fontSize = 15.sp,
-                lineHeight = 21.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "${selectedTone.label} · ${selectedTone.subtitle}",
-                color = BrightGold,
-                fontSize = 12.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(26.dp))
-
-            entry.paragraphs.forEach { paragraph ->
+            Column(
+                modifier = Modifier.widthIn(max = 420.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(
-                    text = paragraph,
-                    color = StarMist,
-                    fontSize = 15.sp,
-                    lineHeight = 22.sp,
-                    textAlign = TextAlign.Start,
+                    text = entry.title,
+                    color = StarWhite,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(15.dp))
+
+                Spacer(modifier = Modifier.height(TitleGap))
+
+                Text(
+                    text = entry.headline,
+                    color = StarLavender,
+                    fontSize = 15.sp,
+                    lineHeight = 21.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "${selectedTone.label} · ${selectedTone.subtitle}",
+                    color = BrightGold,
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(26.dp))
+
+                entry.paragraphs.forEach { paragraph ->
+                    Text(
+                        text = paragraph,
+                        color = StarMist,
+                        fontSize = 15.sp,
+                        lineHeight = 22.sp,
+                        textAlign = TextAlign.Start,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(15.dp))
+                }
+
+                Text(
+                    text = "Для наблюдения",
+                    color = BrightGold,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(TitleGap))
+
+                Text(
+                    text = entry.observationTip,
+                    color = StarMist,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Text(
+                    text = entry.sourcesLabel,
+                    color = StarMist.copy(alpha = 0.72f),
+                    fontSize = 11.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
-
-            Text(
-                text = "Для наблюдения",
-                color = BrightGold,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(5.dp))
-
-            Text(
-                text = entry.observationTip,
-                color = StarMist,
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            Text(
-                text = entry.sourcesLabel,
-                color = StarMist.copy(alpha = 0.72f),
-                fontSize = 11.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
 
         ScreenActionGroup {
@@ -1013,74 +1037,76 @@ private fun SkyOverviewScreen(
     onBack: () -> Unit
 ) {
     ScreenColumn {
-        BrandLabel()
+        ScreenHeader {
+            BrandLabel()
 
-        Column(
-            modifier = Modifier.widthIn(max = 420.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Небосвод пути",
-                color = StarWhite,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.SemiBold,
-                lineHeight = 34.sp,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Text(
-                text = "Все маленькие огни и туманности складываются в одну вашу карту.",
-                color = StarMist,
-                fontSize = 15.sp,
-                lineHeight = 21.sp,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(30.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+            Column(
+                modifier = Modifier.widthIn(max = 420.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                ProgressMetric("${statistics.totalStars}", "всего звёзд", StarWhite)
-                ProgressMetric("${statistics.totalBrightStars}", "ярких", BrightGold)
-                ProgressMetric("${statistics.totalNebulae}", "туманностей", NebulaViolet)
+                Text(
+                    text = "Небосвод пути",
+                    color = StarWhite,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 34.sp,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(TitleGap))
+
+                Text(
+                    text = "Все маленькие огни и туманности складываются в одну вашу карту.",
+                    color = StarMist,
+                    fontSize = 15.sp,
+                    lineHeight = 21.sp,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(30.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    ProgressMetric("${statistics.totalStars}", "всего звёзд", StarWhite)
+                    ProgressMetric("${statistics.totalBrightStars}", "ярких", BrightGold)
+                    ProgressMetric("${statistics.totalNebulae}", "туманностей", NebulaViolet)
+                }
+
+                Spacer(modifier = Modifier.height(34.dp))
+
+                Text(
+                    text = "Завершено путей · ${statistics.completedPaths}",
+                    color = StarLavender,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable(onClick = onOpenArchive)
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Текущая серия · ${statistics.currentStreak} ${dayWord(statistics.currentStreak)}",
+                    color = StarMist,
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(30.dp))
+
+                Text(
+                    text = when {
+                        statistics.totalStars == 0 -> "Первый огонь уже ждёт своего места на карте."
+                        statistics.completedPaths == 0 -> "Каждая отмеченная звезда уже меняет ваш небосвод."
+                        else -> "Путь не обнуляется: он становится шире с каждым созвездием."
+                    },
+                    color = StarMist,
+                    fontSize = 15.sp,
+                    lineHeight = 21.sp,
+                    textAlign = TextAlign.Center
+                )
             }
-
-            Spacer(modifier = Modifier.height(34.dp))
-
-            Text(
-                text = "Завершено путей · ${statistics.completedPaths}",
-                color = StarLavender,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable(onClick = onOpenArchive)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Текущая серия · ${statistics.currentStreak} ${dayWord(statistics.currentStreak)}",
-                color = StarMist,
-                fontSize = 14.sp,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(30.dp))
-
-            Text(
-                text = when {
-                    statistics.totalStars == 0 -> "Первый огонь уже ждёт своего места на карте."
-                    statistics.completedPaths == 0 -> "Каждая отмеченная звезда уже меняет ваш небосвод."
-                    else -> "Путь не обнуляется: он становится шире с каждым созвездием."
-                },
-                color = StarMist,
-                fontSize = 15.sp,
-                lineHeight = 21.sp,
-                textAlign = TextAlign.Center
-            )
         }
 
         ScreenActionGroup {
@@ -1106,52 +1132,54 @@ private fun SupportProjectScreen(
     onBack: () -> Unit
 ) {
     ScreenColumn {
-        BrandLabel()
+        ScreenHeader {
+            BrandLabel()
 
-        Column(
-            modifier = Modifier.widthIn(max = 420.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Поддержать\nпроект",
-                color = StarWhite,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.SemiBold,
-                lineHeight = 34.sp,
-                textAlign = TextAlign.Center
-            )
+            Column(
+                modifier = Modifier.widthIn(max = 420.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Поддержать\nпроект",
+                    color = StarWhite,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 34.sp,
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "Спасибо, что идёте по своему пути вместе с Personal Sky.",
-                color = StarMist,
-                fontSize = 16.sp,
-                lineHeight = 22.sp,
-                textAlign = TextAlign.Center
-            )
+                Text(
+                    text = "Спасибо, что идёте по своему пути вместе с Personal Sky.",
+                    color = StarMist,
+                    fontSize = 16.sp,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(28.dp))
 
-            Text(
-                text = "Приложение всегда останется бесплатным, локальным и без рекламы.",
-                color = StarLavender,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-                lineHeight = 25.sp,
-                textAlign = TextAlign.Center
-            )
+                Text(
+                    text = "Приложение всегда останется бесплатным, локальным и без рекламы.",
+                    color = StarLavender,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 25.sp,
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
-            Text(
-                text = "Вы можете поддержать проект, поставив ему оценку и поделившись " +
-                        "ссылкой с друзьями.",
-                color = StarMist,
-                fontSize = 15.sp,
-                lineHeight = 22.sp,
-                textAlign = TextAlign.Center
-            )
+                Text(
+                    text = "Вы можете поддержать проект, поставив ему оценку и поделившись " +
+                            "ссылкой с друзьями.",
+                    color = StarMist,
+                    fontSize = 15.sp,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
 
         ScreenActionGroup {
@@ -1202,121 +1230,123 @@ private fun GoalManagementScreen(
     val canSaveTitle = normalizedTitle.length >= 3 && normalizedTitle != goal.title
 
     ScreenColumn {
-        BrandLabel()
+        ScreenHeader {
+            BrandLabel()
 
-        Column(modifier = Modifier.widthIn(max = 420.dp)) {
-            Text(
-                text = "Управление\nцелью",
-                color = StarWhite,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.SemiBold,
-                lineHeight = 34.sp
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Text(
-                text = "Меняйте детали пути, не теряя ни одной звезды или туманности.",
-                color = StarMist,
-                fontSize = 15.sp,
-                lineHeight = 21.sp
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            OutlinedTextField(
-                value = title,
-                onValueChange = { if (it.length <= 60) title = it },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                label = { Text("Название цели") },
-                supportingText = {
-                    Text(
-                        text = "От 3 до 60 символов",
-                        color = StarMist.copy(alpha = 0.78f),
-                        fontSize = 12.sp
-                    )
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = StarWhite,
-                    unfocusedTextColor = StarWhite,
-                    focusedContainerColor = FieldBlack,
-                    unfocusedContainerColor = FieldBlack,
-                    focusedBorderColor = StarLavender,
-                    unfocusedBorderColor = StarMist.copy(alpha = 0.45f),
-                    focusedLabelColor = StarLavender,
-                    unfocusedLabelColor = StarMist,
-                    cursorColor = StarLavender
-                ),
-                shape = RoundedCornerShape(18.dp)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            PrimaryButton(
-                text = "Сохранить название",
-                onClick = { onSaveTitle(normalizedTitle) },
-                enabled = canSaveTitle
-            )
-
-            Spacer(modifier = Modifier.height(22.dp))
-
-            Text(
-                text = "Ритм пути",
-                color = StarWhite,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Spacer(modifier = Modifier.height(5.dp))
-
-            Text(
-                text = "Напоминания, тактильный отклик и мягкий звук настраиваются на устройстве.",
-                color = StarMist,
-                fontSize = 13.sp,
-                lineHeight = 18.sp
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            SecondaryButton(
-                text = "Настроить ритм",
-                onClick = onOpenExperienceSettings
-            )
-
-            Spacer(modifier = Modifier.height(22.dp))
-
-            Text(
-                text = "Завершение пути",
-                color = StarWhite,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Spacer(modifier = Modifier.height(5.dp))
-
-            Text(
-                text = "Можно завершить созвездие раньше. Всё, что уже произошло, сохранится в архиве.",
-                color = StarMist,
-                fontSize = 13.sp,
-                lineHeight = 18.sp
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            OutlinedButton(
-                onClick = { showFinishConfirmation = true },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
-                contentPadding = PaddingValues(vertical = 14.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = BrightGold),
-                border = BorderStroke(1.dp, BrightGold.copy(alpha = 0.55f))
-            ) {
+            Column(modifier = Modifier.widthIn(max = 420.dp)) {
                 Text(
-                    text = "Завершить путь раньше",
+                    text = "Управление\nцелью",
+                    color = StarWhite,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 34.sp
+                )
+
+                Spacer(modifier = Modifier.height(TitleGap))
+
+                Text(
+                    text = "Меняйте детали пути, не теряя ни одной звезды или туманности.",
+                    color = StarMist,
                     fontSize = 15.sp,
+                    lineHeight = 21.sp
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { if (it.length <= 60) title = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text("Название цели") },
+                    supportingText = {
+                        Text(
+                            text = "От 3 до 60 символов",
+                            color = StarMist.copy(alpha = 0.78f),
+                            fontSize = 12.sp
+                        )
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = StarWhite,
+                        unfocusedTextColor = StarWhite,
+                        focusedContainerColor = FieldBlack,
+                        unfocusedContainerColor = FieldBlack,
+                        focusedBorderColor = StarLavender,
+                        unfocusedBorderColor = StarMist.copy(alpha = 0.45f),
+                        focusedLabelColor = StarLavender,
+                        unfocusedLabelColor = StarMist,
+                        cursorColor = StarLavender
+                    ),
+                    shape = RoundedCornerShape(18.dp)
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                PrimaryButton(
+                    text = "Сохранить название",
+                    onClick = { onSaveTitle(normalizedTitle) },
+                    enabled = canSaveTitle
+                )
+
+                Spacer(modifier = Modifier.height(22.dp))
+
+                Text(
+                    text = "Ритм пути",
+                    color = StarWhite,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold
                 )
+
+                Spacer(modifier = Modifier.height(TitleGap))
+
+                Text(
+                    text = "Напоминания, тактильный отклик и мягкий звук настраиваются на устройстве.",
+                    color = StarMist,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
+                )
+
+                Spacer(modifier = Modifier.height(TitleGap))
+
+                SecondaryButton(
+                    text = "Настроить ритм",
+                    onClick = onOpenExperienceSettings
+                )
+
+                Spacer(modifier = Modifier.height(22.dp))
+
+                Text(
+                    text = "Завершение пути",
+                    color = StarWhite,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(modifier = Modifier.height(TitleGap))
+
+                Text(
+                    text = "Можно завершить созвездие раньше. Всё, что уже произошло, сохранится в архиве.",
+                    color = StarMist,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
+                )
+
+                Spacer(modifier = Modifier.height(TitleGap))
+
+                OutlinedButton(
+                    onClick = { showFinishConfirmation = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    contentPadding = PaddingValues(vertical = 14.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BrightGold),
+                    border = BorderStroke(1.dp, BrightGold.copy(alpha = 0.55f))
+                ) {
+                    Text(
+                        text = "Завершить путь раньше",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
 
@@ -1479,101 +1509,103 @@ private fun ExperienceSettingsScreen(
     }
 
     ScreenColumn {
-        BrandLabel()
+        ScreenHeader {
+            BrandLabel()
 
-        Column(modifier = Modifier.widthIn(max = 420.dp)) {
-            Text(
-                text = "Ритм\nпути",
-                color = StarWhite,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.SemiBold,
-                lineHeight = 34.sp
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Text(
-                text = "Настройте приглашение вернуться к цели и ощущения от ежедневной отметки.",
-                color = StarMist,
-                fontSize = 15.sp,
-                lineHeight = 21.sp
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = "Напоминание",
-                color = StarWhite,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            ReminderSetupRow(
-                enabled = reminderEnabled,
-                hour = hour,
-                minute = minute,
-                onEnabledChange = { reminderEnabled = it },
-                onTimeClick = { openTimePicker() }
-            )
-
-            if (reminderEnabled) {
-                Spacer(modifier = Modifier.height(6.dp))
+            Column(modifier = Modifier.widthIn(max = 420.dp)) {
                 Text(
-                    text = "Проверить уведомление",
+                    text = "Ритм\nпути",
+                    color = StarWhite,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 34.sp
+                )
+
+                Spacer(modifier = Modifier.height(TitleGap))
+
+                Text(
+                    text = "Настройте приглашение вернуться к цели и ощущения от ежедневной отметки.",
+                    color = StarMist,
+                    fontSize = 15.sp,
+                    lineHeight = 21.sp
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text(
+                    text = "Напоминание",
+                    color = StarWhite,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(modifier = Modifier.height(TitleGap))
+
+                ReminderSetupRow(
+                    enabled = reminderEnabled,
+                    hour = hour,
+                    minute = minute,
+                    onEnabledChange = { reminderEnabled = it },
+                    onTimeClick = { openTimePicker() }
+                )
+
+                if (reminderEnabled) {
+                    Spacer(modifier = Modifier.height(TitleGap))
+                    Text(
+                        text = "Проверить уведомление",
+                        color = StarLavender,
+                        fontSize = 13.sp,
+                        modifier = Modifier.clickable(onClick = onTestNotification)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text(
+                    text = "Ощущения",
+                    color = StarWhite,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(modifier = Modifier.height(TitleGap))
+
+                ExperienceToggleRow(
+                    title = "Тактильный отклик",
+                    description = "Короткая мягкая вибрация при зажигании звезды.",
+                    checked = hapticsEnabled,
+                    onCheckedChange = { hapticsEnabled = it }
+                )
+
+                Spacer(modifier = Modifier.height(TitleGap))
+
+                ExperienceToggleRow(
+                    title = "Тихий сигнал",
+                    description = "Короткий системный тон после отметки. По умолчанию выключен.",
+                    checked = soundEnabled,
+                    onCheckedChange = { soundEnabled = it }
+                )
+
+                Spacer(modifier = Modifier.height(TitleGap))
+
+                ExperienceToggleRow(
+                    title = "Меньше движения",
+                    description = "Убирает мерцание и бегущий след. Небо остаётся спокойным.",
+                    checked = reducedMotionEnabled,
+                    onCheckedChange = { reducedMotionEnabled = it }
+                )
+
+                Spacer(modifier = Modifier.height(TitleGap))
+
+                Text(
+                    text = "Проверить ощущения",
                     color = StarLavender,
                     fontSize = 13.sp,
-                    modifier = Modifier.clickable(onClick = onTestNotification)
+                    modifier = Modifier.clickable {
+                        ExperienceFeedback.celebrateStandard(view, hapticsEnabled, soundEnabled)
+                    }
                 )
             }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = "Ощущения",
-                color = StarWhite,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Spacer(modifier = Modifier.height(7.dp))
-
-            ExperienceToggleRow(
-                title = "Тактильный отклик",
-                description = "Короткая мягкая вибрация при зажигании звезды.",
-                checked = hapticsEnabled,
-                onCheckedChange = { hapticsEnabled = it }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            ExperienceToggleRow(
-                title = "Тихий сигнал",
-                description = "Короткий системный тон после отметки. По умолчанию выключен.",
-                checked = soundEnabled,
-                onCheckedChange = { soundEnabled = it }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            ExperienceToggleRow(
-                title = "Меньше движения",
-                description = "Убирает мерцание и бегущий след. Небо остаётся спокойным.",
-                checked = reducedMotionEnabled,
-                onCheckedChange = { reducedMotionEnabled = it }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Text(
-                text = "Проверить ощущения",
-                color = StarLavender,
-                fontSize = 13.sp,
-                modifier = Modifier.clickable {
-                    ExperienceFeedback.celebrateStandard(view, hapticsEnabled, soundEnabled)
-                }
-            )
         }
 
         ScreenActionGroup {
@@ -1717,35 +1749,37 @@ private fun ReminderSettingsScreen(
     }
 
     ScreenColumn {
-        BrandLabel()
+        ScreenHeader {
+            BrandLabel()
 
-        Column(modifier = Modifier.widthIn(max = 420.dp)) {
-            Text(
-                text = "Время\nдля созвездия",
-                color = StarWhite,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.SemiBold,
-                lineHeight = 34.sp
-            )
+            Column(modifier = Modifier.widthIn(max = 420.dp)) {
+                Text(
+                    text = "Время\nдля созвездия",
+                    color = StarWhite,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 34.sp
+                )
 
-            Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(TitleGap))
 
-            Text(
-                text = "Напоминание — это приглашение вернуться к своему пути, а не требование.",
-                color = StarMist,
-                fontSize = 15.sp,
-                lineHeight = 21.sp
-            )
+                Text(
+                    text = "Напоминание — это приглашение вернуться к своему пути, а не требование.",
+                    color = StarMist,
+                    fontSize = 15.sp,
+                    lineHeight = 21.sp
+                )
 
-            Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(28.dp))
 
-            ReminderSetupRow(
-                enabled = enabled,
-                hour = hour,
-                minute = minute,
-                onEnabledChange = { enabled = it },
-                onTimeClick = { openTimePicker() }
-            )
+                ReminderSetupRow(
+                    enabled = enabled,
+                    hour = hour,
+                    minute = minute,
+                    onEnabledChange = { enabled = it },
+                    onTimeClick = { openTimePicker() }
+                )
+            }
         }
 
         ScreenActionGroup {
@@ -1815,67 +1849,69 @@ private fun ActiveSkyScreen(
     val view = LocalView.current
 
     ScreenColumn {
-        BrandLabel()
+        ScreenHeader {
+            BrandLabel()
 
-        Column(
-            modifier = Modifier.widthIn(max = 420.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = displayTitle,
-                color = StarWhite,
-                fontSize = 25.sp,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center
-            )
+            Column(
+                modifier = Modifier.widthIn(max = 420.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = displayTitle,
+                    color = StarWhite,
+                    fontSize = 25.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(modifier = Modifier.height(5.dp))
+                Spacer(modifier = Modifier.height(TitleGap))
 
-            Text(
-                text = if (reminderEnabled) {
-                    "Напоминание · ${formatReminderTime(reminderHour, reminderMinute)}"
-                } else {
-                    "Напоминание выключено"
-                },
-                color = StarMist,
-                fontSize = 12.sp,
-                modifier = Modifier.clickable(onClick = onOpenExperienceSettings)
-            )
+                Text(
+                    text = if (reminderEnabled) {
+                        "Напоминание · ${formatReminderTime(reminderHour, reminderMinute)}"
+                    } else {
+                        "Напоминание выключено"
+                    },
+                    color = StarMist,
+                    fontSize = 12.sp,
+                    modifier = Modifier.clickable(onClick = onOpenExperienceSettings)
+                )
 
-            Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(TitleGap))
 
-            Text(
-                text = "${template.name} · день ${todayIndex + 1} из $displayDuration",
-                color = StarLavender,
-                fontSize = 14.sp
-            )
+                Text(
+                    text = "${template.name} · день ${todayIndex + 1} из $displayDuration",
+                    color = StarLavender,
+                    fontSize = 14.sp
+                )
 
-            Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
-            ConstellationCanvas(
-                template = template,
-                litStarIndexes = standardIndexes,
-                brightStarIndexes = brightIndexes,
-                nebulaStarIndexes = nebulaIndexes,
-                currentStarIndex = if (isTodayCompleted) null else todayIndex,
-                reducedMotion = reducedMotionEnabled,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp)
-            )
+                ConstellationCanvas(
+                    template = template,
+                    litStarIndexes = standardIndexes,
+                    brightStarIndexes = brightIndexes,
+                    nebulaStarIndexes = nebulaIndexes,
+                    currentStarIndex = if (isTodayCompleted) null else todayIndex,
+                    reducedMotion = reducedMotionEnabled,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp)
+                )
 
-            Text(
-                text = when {
-                    todayIndex in brightIndexes -> "Сегодня вы сделали больше. Звезда сияет ярче."
-                    isTodayCompleted -> "Сегодняшняя звезда уже горит."
-                    nebulaIndexes.isNotEmpty() -> "Туманность хранит пропущенный день. Путь продолжается."
-                    else -> "Сегодня для созвездия есть место."
-                },
-                color = StarMist,
-                fontSize = 16.sp,
-                lineHeight = 22.sp,
-                textAlign = TextAlign.Center
-            )
+                Text(
+                    text = when {
+                        todayIndex in brightIndexes -> "Сегодня вы сделали больше. Звезда сияет ярче."
+                        isTodayCompleted -> "Сегодняшняя звезда уже горит."
+                        nebulaIndexes.isNotEmpty() -> "Туманность хранит пропущенный день. Путь продолжается."
+                        else -> "Сегодня для созвездия есть место."
+                    },
+                    color = StarMist,
+                    fontSize = 16.sp,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
 
         ScreenActionGroup {
@@ -1934,57 +1970,60 @@ private fun ActiveSkyScreen(
 @Composable
 private fun ArchiveScreen(
     goals: List<StoredGoal>,
+    onOpenSupport: () -> Unit,
     onBack: () -> Unit,
     onOpenGoal: (StoredGoal) -> Unit
 ) {
     ScreenColumn {
-        BrandLabel()
-
-        Column(
-            modifier = Modifier.widthIn(max = 420.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Архив\nнебосвода",
-                color = StarWhite,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.SemiBold,
-                lineHeight = 34.sp,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = if (goals.isEmpty()) {
-                    "Завершённые созвездия появятся здесь и останутся частью вашей карты."
-                } else {
-                    "Каждое завершённое созвездие — сохранённый фрагмент вашего пути."
-                },
-                color = StarMist,
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(22.dp))
+        ScreenHeader {
+            BrandLabel()
 
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier.widthIn(max = 420.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (goals.isEmpty()) {
-                    Text(
-                        text = "Пока здесь тихо. Когда первое созвездие завершится, его карта останется с вами.",
-                        color = StarMist,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(top = 76.dp)
-                    )
-                } else {
-                    goals.forEach { goal ->
-                        ArchivedGoalRow(goal = goal, onClick = { onOpenGoal(goal) })
+                Text(
+                    text = "Архив\nнебосвода",
+                    color = StarWhite,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 34.sp,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(TitleGap))
+
+                Text(
+                    text = if (goals.isEmpty()) {
+                        "Завершённые созвездия появятся здесь и останутся частью вашей карты."
+                    } else {
+                        "Каждое завершённое созвездие — сохранённый фрагмент вашего пути."
+                    },
+                    color = StarMist,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(22.dp))
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (goals.isEmpty()) {
+                        Text(
+                            text = "Пока здесь тихо. Когда первое созвездие завершится, его карта останется с вами.",
+                            color = StarMist,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(top = 76.dp)
+                        )
+                    } else {
+                        goals.forEach { goal ->
+                            ArchivedGoalRow(goal = goal, onClick = { onOpenGoal(goal) })
+                        }
                     }
                 }
             }
@@ -1992,11 +2031,16 @@ private fun ArchiveScreen(
 
         ScreenActionGroup {
             SecondaryButton(text = "К истории текущей цели", onClick = onBack)
+
+            Text(
+                text = "Поддержать проект",
+                color = StarLavender.copy(alpha = 0.84f),
+                fontSize = 13.sp,
+                modifier = Modifier
+                    .clickable(onClick = onOpenSupport)
+                    .padding(vertical = 6.dp)
+            )
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        FooterLabel()
     }
 }
 
@@ -2102,53 +2146,55 @@ private fun ArchivedDetailScreen(
         .toSet()
 
     ScreenColumn {
-        BrandLabel()
+        ScreenHeader {
+            BrandLabel()
 
-        Column(
-            modifier = Modifier.widthIn(max = 420.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Сохранённое\nсозвездие",
-                color = StarWhite,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.SemiBold,
-                lineHeight = 34.sp,
-                textAlign = TextAlign.Center
-            )
+            Column(
+                modifier = Modifier.widthIn(max = 420.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Сохранённое\nсозвездие",
+                    color = StarWhite,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 34.sp,
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(modifier = Modifier.height(7.dp))
+                Spacer(modifier = Modifier.height(TitleGap))
 
-            Text(
-                text = "${goal.title} · ${template.name}",
-                color = StarLavender,
-                fontSize = 15.sp,
-                textAlign = TextAlign.Center
-            )
+                Text(
+                    text = "${goal.title} · ${template.name}",
+                    color = StarLavender,
+                    fontSize = 15.sp,
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(TitleGap))
 
-            ConstellationCanvas(
-                template = template,
-                litStarIndexes = standardIndexes,
-                brightStarIndexes = brightIndexes,
-                nebulaStarIndexes = nebulaIndexes,
-                reducedMotion = reducedMotionEnabled,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(290.dp)
-            )
+                ConstellationCanvas(
+                    template = template,
+                    litStarIndexes = standardIndexes,
+                    brightStarIndexes = brightIndexes,
+                    nebulaStarIndexes = nebulaIndexes,
+                    reducedMotion = reducedMotionEnabled,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(290.dp)
+                )
 
-            Text(
-                text = "Старт ${archiveDate(goal.startEpochDay)} · ${goal.durationDays} дней пути",
-                color = StarMist,
-                fontSize = 13.sp,
-                textAlign = TextAlign.Center
-            )
+                Text(
+                    text = "Старт ${archiveDate(goal.startEpochDay)} · ${goal.durationDays} дней пути",
+                    color = StarMist,
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-            HistoryLegend()
+                HistoryLegend()
+            }
         }
 
         ScreenActionGroup {
@@ -2192,79 +2238,81 @@ private fun CompletionScreen(
     val starCount = standardIndexes.size + brightCount
 
     ScreenColumn {
-        BrandLabel()
+        ScreenHeader {
+            BrandLabel()
 
-        Column(
-            modifier = Modifier.widthIn(max = 420.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Созвездие\nзавершено",
-                color = StarWhite,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.SemiBold,
-                lineHeight = 34.sp,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(7.dp))
-
-            Text(
-                text = "${goal.title} · ${template.name}",
-                color = StarLavender,
-                fontSize = 15.sp,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            ConstellationCanvas(
-                template = template,
-                litStarIndexes = standardIndexes,
-                brightStarIndexes = brightIndexes,
-                nebulaStarIndexes = nebulaIndexes,
-                reducedMotion = reducedMotionEnabled,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(240.dp)
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+            Column(
+                modifier = Modifier.widthIn(max = 420.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                ProgressMetric(value = "$starCount", label = "звёзд", color = StarWhite)
-                ProgressMetric(value = "$brightCount", label = "ярких", color = BrightGold)
-                ProgressMetric(value = "${nebulaIndexes.size}", label = "туманностей", color = NebulaViolet)
+                Text(
+                    text = "Созвездие\nзавершено",
+                    color = StarWhite,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 34.sp,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(TitleGap))
+
+                Text(
+                    text = "${goal.title} · ${template.name}",
+                    color = StarLavender,
+                    fontSize = 15.sp,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(TitleGap))
+
+                ConstellationCanvas(
+                    template = template,
+                    litStarIndexes = standardIndexes,
+                    brightStarIndexes = brightIndexes,
+                    nebulaStarIndexes = nebulaIndexes,
+                    reducedMotion = reducedMotionEnabled,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    ProgressMetric(value = "$starCount", label = "звёзд", color = StarWhite)
+                    ProgressMetric(value = "$brightCount", label = "ярких", color = BrightGold)
+                    ProgressMetric(value = "${nebulaIndexes.size}", label = "туманностей", color = NebulaViolet)
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text(
+                    text = "Спасибо, что шли этот путь. Каждый день вы возвращались к цели — " +
+                            "и теперь на вашем небе горит целое созвездие.",
+                    color = StarWhite,
+                    fontSize = 15.sp,
+                    lineHeight = 21.sp,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = when {
+                        brightCount > 0 && nebulaIndexes.isNotEmpty() -> {
+                            "В вашей карте есть и яркий свет, и туманности. Это целый путь."
+                        }
+                        brightCount > 0 -> "Вы зажгли особенно яркие звёзды. Пусть этот свет останется с вами."
+                        nebulaIndexes.isNotEmpty() -> "Вы дошли до конца. Туманности тоже стали частью вашего неба."
+                        else -> "Каждый день стал звездой. Созвездие собрано целиком."
+                    },
+                    color = StarMist,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    textAlign = TextAlign.Center
+                )
             }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = "Спасибо, что шли этот путь. Каждый день вы возвращались к цели — " +
-                        "и теперь на вашем небе горит целое созвездие.",
-                color = StarWhite,
-                fontSize = 15.sp,
-                lineHeight = 21.sp,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Text(
-                text = when {
-                    brightCount > 0 && nebulaIndexes.isNotEmpty() -> {
-                        "В вашей карте есть и яркий свет, и туманности. Это целый путь."
-                    }
-                    brightCount > 0 -> "Вы зажгли особенно яркие звёзды. Пусть этот свет останется с вами."
-                    nebulaIndexes.isNotEmpty() -> "Вы дошли до конца. Туманности тоже стали частью вашего неба."
-                    else -> "Каждый день стал звездой. Созвездие собрано целиком."
-                },
-                color = StarMist,
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                textAlign = TextAlign.Center
-            )
         }
 
         ScreenActionGroup {
@@ -2304,87 +2352,89 @@ private fun HistoryScreen(
     val remainingCount = (goal.durationDays - (todayIndex + 1)).coerceAtLeast(0)
 
     ScreenColumn {
-        BrandLabel()
+        ScreenHeader {
+            BrandLabel()
 
-        Column(
-            modifier = Modifier.widthIn(max = 420.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "История созвездия",
-                color = StarWhite,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = goal.title,
-                color = StarLavender,
-                fontSize = 16.sp,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(22.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+            Column(
+                modifier = Modifier.widthIn(max = 420.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                ProgressMetric(value = "${standardCount + brightCount}", label = "звёзд", color = StarWhite)
-                ProgressMetric(value = "$nebulaCount", label = "туманностей", color = NebulaViolet)
-                ProgressMetric(value = "$remainingCount", label = "осталось", color = StarMist)
-            }
+                Text(
+                    text = "История созвездия",
+                    color = StarWhite,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(modifier = Modifier.height(26.dp))
+                Spacer(modifier = Modifier.height(TitleGap))
 
-            Text(
-                text = "Календарь экспедиции",
-                color = StarWhite,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.fillMaxWidth()
-            )
+                Text(
+                    text = goal.title,
+                    color = StarLavender,
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(22.dp))
 
-            (0 until goal.durationDays).toList().chunked(7).forEach { week ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    week.forEach { dayIndex ->
-                        val dayVisual = when (checkInsByDay[dayIndex]?.type) {
-                            CheckInType.STANDARD -> HistoryDayVisual.STANDARD
-                            CheckInType.BRIGHT -> HistoryDayVisual.BRIGHT
-                            CheckInType.MISSED -> HistoryDayVisual.NEBULA
-                            null -> if (dayIndex == todayIndex) HistoryDayVisual.TODAY else HistoryDayVisual.FUTURE
-                        }
-                        HistoryDayCell(dayIndex = dayIndex, visual = dayVisual)
-                    }
+                    ProgressMetric(value = "${standardCount + brightCount}", label = "звёзд", color = StarWhite)
+                    ProgressMetric(value = "$nebulaCount", label = "туманностей", color = NebulaViolet)
+                    ProgressMetric(value = "$remainingCount", label = "осталось", color = StarMist)
                 }
-                Spacer(modifier = Modifier.height(10.dp))
+
+                Spacer(modifier = Modifier.height(26.dp))
+
+                Text(
+                    text = "Календарь экспедиции",
+                    color = StarWhite,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                (0 until goal.durationDays).toList().chunked(7).forEach { week ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        week.forEach { dayIndex ->
+                            val dayVisual = when (checkInsByDay[dayIndex]?.type) {
+                                CheckInType.STANDARD -> HistoryDayVisual.STANDARD
+                                CheckInType.BRIGHT -> HistoryDayVisual.BRIGHT
+                                CheckInType.MISSED -> HistoryDayVisual.NEBULA
+                                null -> if (dayIndex == todayIndex) HistoryDayVisual.TODAY else HistoryDayVisual.FUTURE
+                            }
+                            HistoryDayCell(dayIndex = dayIndex, visual = dayVisual)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(TitleGap))
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                HistoryLegend()
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = if (nebulaCount > 0) {
+                        "Каждая туманность — часть пути, а не потерянный прогресс."
+                    } else {
+                        "Карта будет постепенно хранить и свет, и туманности вашего пути."
+                    },
+                    color = StarMist,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    textAlign = TextAlign.Center
+                )
             }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            HistoryLegend()
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = if (nebulaCount > 0) {
-                    "Каждая туманность — часть пути, а не потерянный прогресс."
-                } else {
-                    "Карта будет постепенно хранить и свет, и туманности вашего пути."
-                },
-                color = StarMist,
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                textAlign = TextAlign.Center
-            )
         }
 
         ScreenActionGroup {
@@ -2843,6 +2893,34 @@ private fun SecondaryButton(
             fontSize = 15.sp
         )
     }
+}
+
+/**
+ * Стандартные отступы верхней части экрана.
+ *
+ * ``BrandLabel`` и заголовок — соседи в ``ScreenColumn`` с
+ * verticalArrangement = Top, поэтому зазор между ними был нулевым
+ * и название продукта прилипало к заголовку. Внутри блока заголовка
+ * отступ до подзаголовка тоже шёл вразнобой (5…10 dp). Обе величины
+ * вынесены в константы, чтобы верх экрана выглядел одинаково везде.
+ */
+private val BrandGap = 14.dp
+private val TitleGap = 14.dp
+
+/**
+ * Шапка экрана: название продукта и общий зазор до заголовка.
+ *
+ * Собран в один компонент, иначе зазор пришлось бы повторять на каждом
+ * экране отдельным Spacer — именно так он и был потерян раньше.
+ */
+@Composable
+private fun ScreenHeader(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(BrandGap),
+        content = content
+    )
 }
 
 @Composable
