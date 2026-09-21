@@ -34,3 +34,7 @@ key.properties
 /tools/bin/
 *.apks
 
+# Временные файлы подготовки страницы в Google Play
+/store-screenshots/
+*.log
+
